@@ -53,36 +53,127 @@
 - Use feature flags for version switching
 - Maintain working state at every increment
 
-## Test-Driven Development (Mandatory)
+## Test-Driven Development (Strategic)
+
+### RADIO-DDD-TDD Pattern
+Integration of RADIO workflow, DDD architecture, and strategic testing for maximum value with minimal complexity.
 
 ### TDD Workflow
-1. **Red**: Write failing test first
-2. **Green**: Write minimal code to pass
-3. **Refactor**: Improve while keeping tests green
+1. **Red**: Write failing test for important behavior first
+2. **Green**: Write minimal code to pass the test
+3. **Refactor**: Improve design while keeping tests green
 
-### Testing Standards
+### Smart Testing Strategy
+
+#### Test by Business Risk and Value
 ```typescript
-// Required 3A Pattern
-describe('UserService', () => {
-  it('should create user with valid email', async () => {
-    // Arrange
-    const userData = { email: 'test@example.com', password: 'SecurePass123!' };
-    const mockRepo = createMockUserRepository();
-    const service = new UserService(mockRepo);
+// Priority 1: Critical Business Rules (Domain Layer)
+describe('AuthDomain', () => {
+  it('should enforce business rule: only active users can login', () => {
+    // Test core business logic that affects security/money/data
+    const user = new User({ status: 'inactive' });
+    expect(() => user.authenticate()).toThrow('User not active');
+  });
+});
 
-    // Act
-    const result = await service.createUser(userData);
-
-    // Assert
+// Priority 2: Important User Workflows (Application Layer)
+describe('LoginUseCase', () => {
+  it('should complete authentication workflow successfully', () => {
+    // Test complete business processes
+    const result = loginUseCase.execute(validCredentials);
     expect(result.success).toBe(true);
-    expect(result.data.email).toBe(userData.email);
+    expect(result.redirectTo).toBe('/dashboard');
+  });
+});
+
+// Priority 3: Integration Contracts (Infrastructure Layer)
+describe('AuthRepository', () => {
+  it('should maintain data integrity during user operations', () => {
+    // Test critical integration points only
+    const user = repository.save(userData);
+    expect(user.id).toBeDefined();
+    expect(user.hashedPassword).not.toBe(userData.password);
   });
 });
 ```
 
-### Coverage Goals
-- Domain: 100% | Application: 80% | UI: 60% | Infrastructure: 40%
-- **Test Immutability**: Never modify approved tests to make code pass
+#### DDD Layer Testing Rules
+
+**Domain Layer** - Focus on Business Rules
+- Test all business invariants and domain rules
+- Test domain events and aggregate behavior
+- Skip getters/setters, focus on business logic
+- 100% coverage of business rules (not code lines)
+
+**Application Layer** - Focus on Workflows
+- Test complete use case flows
+- Test cross-aggregate coordination
+- Test important error scenarios
+- Skip parameter validation details
+
+**Infrastructure Layer** - Focus on Contracts
+- Test external system integration contracts
+- Test data mapping correctness
+- Test critical error recovery
+- Skip framework internal logic
+
+**Presentation Layer** - Focus on User Value
+- Test important user interaction flows
+- Test critical state changes
+- Test key error displays
+- Skip UI styling details
+
+### Testing Priorities
+
+#### Critical (Must Test)
+- Business rules affecting security, money, or data integrity
+- User authentication and authorization flows
+- Legacy behavior preservation (for migrations)
+- API contracts and data consistency
+
+#### Important (Should Test)
+- Main user workflows and happy paths
+- Error handling for common scenarios
+- Integration with external systems
+- Performance-critical operations
+
+#### Optional (Can Skip)
+- Edge cases with minimal business impact
+- UI styling and animation details
+- Non-critical validation messages
+- Framework boilerplate code
+
+### Migration-Safe Testing
+```typescript
+// Behavior Preservation (Critical for migrations)
+describe('Legacy Compatibility', () => {
+  it('should maintain exact same behavior as legacy system', () => {
+    // Side-by-side comparison with original implementation
+    const legacyResult = legacySystem.processLogin(credentials);
+    const newResult = newSystem.processLogin(credentials);
+    expect(newResult).toDeepEqual(legacyResult);
+  });
+});
+
+// Contract Testing
+describe('API Contract', () => {
+  it('should maintain same response format', () => {
+    // Ensure API contracts remain unchanged
+    const response = api.login(credentials);
+    expect(response).toMatchSchema(expectedApiSchema);
+  });
+});
+```
+
+### Coverage Philosophy
+Focus on **behavior coverage** rather than **code coverage**:
+- Test what matters to users and business
+- Avoid testing implementation details
+- Use triangulation: minimal tests for maximum confidence
+- Prioritize test maintainability over exhaustiveness
+
+### Test Immutability Rule
+Never modify approved tests to make new code pass - this indicates design problems, not test problems.
 
 ## Domain-Driven Design Architecture
 
