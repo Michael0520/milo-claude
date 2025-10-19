@@ -1,0 +1,29 @@
+<h2 mat-dialog-title>{{ dialogTitle | transloco }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" id="{{entity-name}}-form">
+    <mat-form-field class="full-width">
+      <mat-label>{{ 'pages.{{domain-name}}.{{entity-name}}.name' | transloco }}</mat-label>
+      <input matInput formControlName="name" required />
+      <mat-error *ngIf="form.get('name')?.hasError('required')">
+        {{ 'validators.required' | transloco }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>{{ 'pages.{{domain-name}}.{{entity-name}}.description' | transloco }}</mat-label>
+      <textarea matInput formControlName="description" rows="3"></textarea>
+    </mat-form-field>
+
+    <!-- TODO: Add more form fields -->
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">
+    {{ 'general.button.cancel' | transloco }}
+  </button>
+  <button mat-raised-button color="primary" (click)="submit()" [disabled]="form.invalid">
+    {{ 'general.button.save' | transloco }}
+  </button>
+</mat-dialog-actions>

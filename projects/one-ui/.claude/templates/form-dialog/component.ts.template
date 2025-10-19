@@ -1,0 +1,74 @@
+import { Component, ChangeDetectionStrategy, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { TranslocoModule } from '@jsverse/transloco';
+
+export interface {{EntityName}}DialogData {
+  mode: 'create' | 'edit';
+  item?: {{EntityName}};
+}
+
+@Component({
+  selector: 'one-ui-{{entity-name}}-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    TranslocoModule
+  ],
+  templateUrl: './{{entity-name}}-dialog.component.html',
+  styleUrl: './{{entity-name}}-dialog.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class {{EntityName}}DialogComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly dialogRef = inject(MatDialogRef<{{EntityName}}DialogComponent>);
+  protected readonly data = inject<{{EntityName}}DialogData>(MAT_DIALOG_DATA);
+
+  protected readonly form: FormGroup = this.fb.group({
+    name: ['', [Validators.required]],
+    description: [''],
+    // TODO: Add more form fields based on your entity
+  });
+
+  protected get isEditMode(): boolean {
+    return this.data.mode === 'edit';
+  }
+
+  protected get dialogTitle(): string {
+    return this.isEditMode
+      ? 'pages.{{domain-name}}.{{entity-name}}.edit'
+      : 'pages.{{domain-name}}.{{entity-name}}.create';
+  }
+
+  ngOnInit(): void {
+    if (this.isEditMode && this.data.item) {
+      // Populate form with existing data
+      this.form.patchValue({
+        name: this.data.item.name,
+        description: this.data.item.description
+        // TODO: Patch other fields
+      });
+    }
+  }
+
+  protected submit(): void {
+    if (this.form.valid) {
+      this.dialogRef.close(this.form.value);
+    } else {
+      this.form.markAllAsTouched();
+    }
+  }
+
+  protected cancel(): void {
+    this.dialogRef.close();
+  }
+}

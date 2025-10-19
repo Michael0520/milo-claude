@@ -1,0 +1,36 @@
+<mx-page-title>{{ 'menu.{{entity-name}}' | transloco }}</mx-page-title>
+
+<one-ui-common-table
+  [data]="data()"
+  [columns]="tableColumns"
+  [selectable]="isMainLicenseValid()"
+  [editable]="true"
+  [loading]="isLoading()"
+  [pageSize]="50"
+  [pageSizeOptions]="[50, 100, 200]"
+  (select)="handleSelectionChange($event)"
+  (edit)="handleEdit($event)"
+>
+  <!-- Left toolbar buttons -->
+  <ng-template #leftToolbarTemplate let-selectedItems="selectedItems">
+    @if (isMainLicenseValid()) {
+      @if (selectedItems.length === 0) {
+        <button (click)="create()" mat-icon-button [matTooltip]="'general.table.add' | transloco">
+          <mat-icon>add_box</mat-icon>
+        </button>
+      } @else {
+        <button
+          (click)="delete()"
+          mat-icon-button
+          [matTooltip]="'general.table.delete' | transloco"
+          class="delete-button"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      }
+      <button (click)="loadData()" mat-icon-button [matTooltip]="'general.table.refresh' | transloco">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    }
+  </ng-template>
+</one-ui-common-table>

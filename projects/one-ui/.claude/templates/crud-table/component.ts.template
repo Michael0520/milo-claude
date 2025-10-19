@@ -1,0 +1,238 @@
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
+// Material imports
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
+
+// Transloco
+import { TranslocoModule } from '@jsverse/transloco';
+
+// FormOXA
+import { MxPageTitleComponent } from '@moxa/formoxa/mx-page-title';
+
+// Domain imports
+import { {{EntityName}}, {{EntityName}}ApiService } from '@one-ui/mxsecurity/{{domain-name}}/domain';
+import {
+  CommonTableComponent,
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+  ConfirmDialogType,
+  CONFIRM_DIALOG_CONFIG
+} from '@one-ui/mxsecurity/shared/ui';
+import { TableColumn, SELECT_COLUMN_KEY, EDIT_COLUMN_KEY } from '@one-ui/mxsecurity/shared/domain';
+import { AuthStore } from '@one-ui/mxsecurity/auth/domain';
+
+// Feature imports (dialogs)
+import { {{EntityName}}DialogComponent } from './{{entity-name}}-dialog/{{entity-name}}-dialog.component';
+
+@Component({
+  selector: 'one-ui-{{entity-name}}',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    TranslocoModule,
+    MxPageTitleComponent,
+    CommonTableComponent
+  ],
+  templateUrl: './{{entity-name}}.component.html',
+  styleUrl: './{{entity-name}}.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class {{EntityName}}Component implements OnInit, OnDestroy {
+  private readonly apiService = inject({{EntityName}}ApiService);
+  private readonly authStore = inject(AuthStore);
+  private readonly dialog = inject(MatDialog);
+  private readonly destroy$ = new Subject<void>();
+
+  // Signals for reactive state
+  protected readonly data = signal<{{EntityName}}[]>([]);
+  protected readonly isLoading = signal<boolean>(false);
+  protected readonly isMainLicenseValid = signal<boolean>(false);
+
+  // Table configuration
+  protected readonly tableColumns: TableColumn[] = [
+    { key: SELECT_COLUMN_KEY },
+    { key: EDIT_COLUMN_KEY },
+    { key: 'name', header: 'pages.{{domain-name}}.{{entity-name}}.name' },
+    { key: 'status', header: 'pages.{{domain-name}}.{{entity-name}}.status' },
+    { key: 'createdAt', header: 'pages.{{domain-name}}.{{entity-name}}.createdAt' }
+    // TODO: Add more columns based on your entity
+  ];
+
+  protected selectedItems: {{EntityName}}[] = [];
+
+  ngOnInit(): void {
+    // Subscribe to license validity
+    this.authStore.isMainLicenseValid().subscribe((isValid) => {
+      this.isMainLicenseValid.set(isValid);
+    });
+
+    // Load initial data
+    this.loadData();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Load all items from API
+   */
+  protected loadData(): void {
+    this.isLoading.set(true);
+
+    this.apiService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.data.set(data);
+          this.isLoading.set(false);
+        },
+        error: (error) => {
+          console.error('Failed to load {{entity-name}}:', error);
+          this.isLoading.set(false);
+        }
+      });
+  }
+
+  /**
+   * Handle selection change from table
+   */
+  protected handleSelectionChange(items: {{EntityName}}[]): void {
+    this.selectedItems = items;
+  }
+
+  /**
+   * Open create dialog
+   */
+  protected create(): void {
+    const dialogRef = this.dialog.open({{EntityName}}DialogComponent, {
+      width: '600px',
+      data: { mode: 'create' }
+    });
+
+    dialogRef.afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((result) => {
+        if (result) {
+          this.createItem(result);
+        }
+      });
+  }
+
+  /**
+   * Open edit dialog
+   */
+  protected handleEdit(item: {{EntityName}}): void {
+    const dialogRef = this.dialog.open({{EntityName}}DialogComponent, {
+      width: '600px',
+      data: { mode: 'edit', item }
+    });
+
+    dialogRef.afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((result) => {
+        if (result) {
+          this.updateItem(item.id, result);
+        }
+      });
+  }
+
+  /**
+   * Delete selected items with confirmation
+   */
+  protected delete(): void {
+    const count = this.selectedItems.length;
+
+    const dialogData: ConfirmDialogData = {
+      type: ConfirmDialogType.DELETE,
+      title: 'general.dialog.confirmDelete',
+      message: `Are you sure you want to delete ${count} item(s)?`,
+      confirmText: 'general.button.delete',
+      cancelText: 'general.button.cancel'
+    };
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      ...CONFIRM_DIALOG_CONFIG,
+      data: dialogData
+    });
+
+    dialogRef.afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.deleteItems(this.selectedItems.map(item => item.id));
+        }
+      });
+  }
+
+  /**
+   * Create new item via API
+   */
+  private createItem(data: Partial<{{EntityName}}>): void {
+    this.isLoading.set(true);
+
+    this.apiService
+      .create(data)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadData(); // Refresh list
+        },
+        error: (error) => {
+          console.error('Failed to create {{entity-name}}:', error);
+          this.isLoading.set(false);
+        }
+      });
+  }
+
+  /**
+   * Update existing item via API
+   */
+  private updateItem(id: string, data: Partial<{{EntityName}}>): void {
+    this.isLoading.set(true);
+
+    this.apiService
+      .update(id, data)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadData(); // Refresh list
+        },
+        error: (error) => {
+          console.error('Failed to update {{entity-name}}:', error);
+          this.isLoading.set(false);
+        }
+      });
+  }
+
+  /**
+   * Delete items via API
+   */
+  private deleteItems(ids: string[]): void {
+    this.isLoading.set(true);
+
+    this.apiService
+      .delete(ids)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadData(); // Refresh list
+        },
+        error: (error) => {
+          console.error('Failed to delete {{entity-name}}s:', error);
+          this.isLoading.set(false);
+        }
+      });
+  }
+}
